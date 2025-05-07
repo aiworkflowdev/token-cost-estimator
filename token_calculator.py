@@ -1,23 +1,24 @@
-#Test token cost estimator: calculate token usage and costs for OpenAI models.
-#use ot to estimate input/output cost based on pricing 
+#Test token cost estimator: calculate token usage and costs for OpenAI and grok  models.
+#Uses tiktoken for OpenAI Models and heuristic for grok.
 
 import tiktoken #Library for tokenizing text
 
 #pricing dictionary : cost per 1,000 tokens for input and output (in Usd) 
-#model include GPT-3.5-turbo , GPT-40 , GPT-4-Turbo with approximate 2025 rate.
+#model include GPT-3.5-turbo , GPT-4o , GPT-4-Turbo, grok-3 with approximate 2025 rate.
 PRICING = {
 	    "gpt-3.5-turbo":{"input": 0.0005, "output": 0.0015},
         "gpt-4o":{"input": 0.0005, "output": 0.0015},
         "gpt-4-turbo":{"input": 0.01, "output": 0.03},
+		"grok-3":{"input": 0.0006, "output": 0.006}, #Grok-3 pricing is heuristic, based on $6/1M tokens blended.
 }
 
 #function to count token in tect for given model
 def count_tokens(text, model="gpt-3.5-turbo"):
 	"""
-	count token in the input text using tiktoken for the specificed model.
+	count token in the input text using tiktoken for the OpenAI model or heuristic for Grok.
 	args:
 		text (str):Text to tokenize.
-		model (str): Model name (e.g, 'gpt-3.5-turbo').
+		model (str): Model name (e.g, 'gpt-3.5-turbo', 'grok-3').
 	Returns:
 		int :Number of tokens.
 	Raises:
@@ -26,6 +27,9 @@ def count_tokens(text, model="gpt-3.5-turbo"):
 	try:
 		if not text.strip(): #check for empty whitespace-only text
 			return 0
+		if model == "grok-3": #for grok-3 use heuristic
+			print("Grok-3 token count is heuristic, not exact.")
+			return max(1, len(text) // 4) #approximate token count
 		encoding = tiktoken.encoding_for_model(model) #get model's encoding
 		return len(encoding.encode(text)) #encode text and count tokens
 	except KeyError:
@@ -63,7 +67,7 @@ if __name__== "__main__":
 		output_guess = input("Estimated output tokens (press enter for 100): ").strip()
 		#Convert output guess to integer use 100 if empty or invalid
 		output_tokens = int(output_guess) if output_guess.isdigit() else 100
-		#calculate input tokens using tiktoken
+		#calculate input tokens
 		input_tokens = count_tokens(text, model)
 		#estimate cost for input and output 
 		input_cost, output_cost = estimate_cost(input_tokens, output_tokens, model)
@@ -78,4 +82,4 @@ if __name__== "__main__":
 	except Exception as e:
 		print(f"Unexpected error: {e}") #catch any other unexpected issues
 #End of script
-#This script is a simple token cost estimator for OpenAI models using tiktoken for tokenization
+#This script is a simple token cost estimator for OpenAI and Grok models.
